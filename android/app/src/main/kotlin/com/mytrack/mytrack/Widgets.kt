@@ -70,8 +70,10 @@ fun fmt(ms0: Long): String {
 
 class WidgetState(val seconds: Boolean, val habits: List<Habit>)
 
-private fun state(data: SharedPreferences): WidgetState {
-    val o = JSONObject(data.getString("state", null) ?: "{}")
+private fun state(data: SharedPreferences) = parseState(data.getString("state", null))
+
+fun parseState(json: String?): WidgetState {
+    val o = JSONObject(json ?: "{}")
     val a = o.optJSONArray("habits")
     val habits = (0 until (a?.length() ?: 0)).map {
         val h = a!!.getJSONObject(it)
@@ -126,6 +128,10 @@ private fun elapsed(v: RemoteViews, textId: Int, chronoId: Int, h: Habit, now: L
     else v.setTextViewText(textId, if (short && el < HOUR) "${el / MINUTE}m" else fmt(el))
 }
 
+/** The habit a single-habit widget shows: the one picked for it, or the first habit if it was never
+ *  picked or has been deleted. Null (the "add a habit" state) when there are no habits. */
+fun pick(habits: List<Habit>, chosen: Int): Habit? = habits.firstOrNull { it.id == chosen } ?: habits.firstOrNull()
+
 abstract class MyTrackWidget : HomeWidgetProvider() {
     abstract val layout: Int
     open val single = true
@@ -134,8 +140,7 @@ abstract class MyTrackWidget : HomeWidgetProvider() {
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray, data: SharedPreferences) {
         val s = state(data); val now = System.currentTimeMillis()
         for (id in ids) {
-            val chosen = choices(ctx).getInt("w$id", -1)
-            val h = s.habits.firstOrNull { it.id == chosen } ?: s.habits.firstOrNull()
+            val h = pick(s.habits, choices(ctx).getInt("w$id", -1))
             val v = RemoteViews(ctx.packageName, layout)
             val empty = if (single) h == null else s.habits.isEmpty()
             v.setViewVisibility(R.id.empty, if (empty) View.VISIBLE else View.GONE)

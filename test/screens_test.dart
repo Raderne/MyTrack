@@ -49,4 +49,24 @@ void main() {
     expect(t.getSize(find.byType(Splash)), const Size(360, 760));
     await t.pump(const Duration(seconds: 2));
   });
+
+  testWidgets('log sheet fits with the keyboard open', (t) async {
+    t.view.physicalSize = const Size(360, 640);
+    t.view.devicePixelRatio = 1;
+    t.view.viewInsets = const FakeViewPadding(bottom: 320); // keyboard
+    store.habits = [
+      Habit(1, 'Smoking', 'ph-cigarette', [store.now - 5 * hour, store.now - 2 * hour]),
+    ];
+    await t.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (c) => TextButton(onPressed: () => logSlip(c, 1), child: const Text('log')),
+        ),
+      ),
+    );
+    await t.tap(find.text('log'));
+    await t.pumpAndSettle();
+    expect(find.text('Log slip now'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
 }

@@ -46,6 +46,23 @@ Future<void> initSystem(void Function(Uri) onOpen) async {
   _ready = true;
 }
 
+/// What the home-screen widgets render (read by android/.../Widgets.kt).
+Map<String, Object?> widgetState(List<HabitView> views, Map<String, bool> prefs) => {
+  'seconds': prefs['seconds'],
+  'habits': [
+    for (final v in views)
+      {
+        'id': v.habit.id,
+        'name': v.habit.name,
+        'icon': iconOf(v.habit.icon).codePoint,
+        'last': v.habit.slips.last,
+        'target': v.target,
+        'base': v.streak - (v.beat ? 1 : 0),
+        'label': v.best ? 'Best' : 'Last',
+      },
+  ],
+};
+
 /// Rebuilds every scheduled notification and pushes fresh state to the widgets.
 /// Called after any change, so nothing here has to be incremental.
 Future<void> syncSystem(List<Habit> habits, Map<String, bool> prefs) async {
@@ -54,24 +71,7 @@ Future<void> syncSystem(List<Habit> habits, Map<String, bool> prefs) async {
   final best = prefs['beatBest']!;
   final views = [for (final h in habits) HabitView(h, now, best: best)];
 
-  await HomeWidget.saveWidgetData(
-    'state',
-    jsonEncode({
-      'seconds': prefs['seconds'],
-      'habits': [
-        for (final v in views)
-          {
-            'id': v.habit.id,
-            'name': v.habit.name,
-            'icon': iconOf(v.habit.icon).codePoint,
-            'last': v.habit.slips.last,
-            'target': v.target,
-            'base': v.streak - (v.beat ? 1 : 0),
-            'label': best ? 'Best' : 'Last',
-          },
-      ],
-    }),
-  );
+  await HomeWidget.saveWidgetData('state', jsonEncode(widgetState(views, prefs)));
   for (final w in _widgets) {
     await HomeWidget.updateWidget(qualifiedAndroidName: 'com.mytrack.mytrack.$w');
   }

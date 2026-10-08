@@ -9,7 +9,7 @@ import 'system.dart';
 
 /// App state backed by SQLite. Ticks once a second so every clock on screen moves.
 class Store extends ChangeNotifier {
-  late final Database _db;
+  late Database _db;
   List<Habit> habits = [];
   int now = DateTime.now().millisecondsSinceEpoch;
   final prefs = <String, bool>{
@@ -21,9 +21,10 @@ class Store extends ChangeNotifier {
     'haptics': true,
   };
 
-  Future<void> init() async {
+  /// [path] and [tick] exist for tests: a throwaway database, and no 1-second timer.
+  Future<void> init({String? path, bool tick = true}) async {
     _db = await openDatabase(
-      p.join(await getDatabasesPath(), 'mytrack.db'),
+      path ?? p.join(await getDatabasesPath(), 'mytrack.db'),
       version: 1,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, _) async {
@@ -38,6 +39,7 @@ class Store extends ChangeNotifier {
       },
     );
     await _load();
+    if (!tick) return;
     Timer.periodic(const Duration(seconds: 1), (_) {
       now = DateTime.now().millisecondsSinceEpoch;
       notifyListeners();

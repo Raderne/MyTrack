@@ -278,93 +278,96 @@ Future<void> logSlip(BuildContext context, int id) async {
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       side: BorderSide(color: n500),
     ),
-    builder: (c) => Padding(
-      padding: EdgeInsets.fromLTRB(20, 10, 20, 24 + MediaQuery.viewInsetsOf(c).bottom),
-      child: ListenableBuilder(
-        listenable: store,
-        builder: (c, _) {
-          final v = store.view(id)!, t = v.target;
-          return StatefulBuilder(
-            builder: (c, set) => Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(color: n700, borderRadius: BorderRadius.circular(2)),
+    // Scrolls when the keyboard leaves too little room for the whole sheet.
+    builder: (c) => SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 10, 20, 24 + MediaQuery.viewInsetsOf(c).bottom),
+        child: ListenableBuilder(
+          listenable: store,
+          builder: (c, _) {
+            final v = store.view(id)!, t = v.target;
+            return StatefulBuilder(
+              builder: (c, set) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(color: n700, borderRadius: BorderRadius.circular(2)),
+                    ),
                   ),
-                ),
-                Text('Log a slip · ${v.habit.name}', style: ts(12, c: n500)),
-                const SizedBox(height: 4),
-                Text('This interval: ${fmt(v.el)}', style: ts(22, w: w5)),
-                const SizedBox(height: 4),
-                Text(
-                  t == null
-                      ? 'First interval. This becomes the bar.'
-                      : v.beat
-                      ? 'Longer than your ${v.barName} (${fmt(t)}). This one passes.'
-                      : 'Not longer than your ${v.barName} (${fmt(t)}). Logging now is a fail.',
-                  style: ts(13, c: v.passing ? a300 : fail),
-                ),
-                const SizedBox(height: 18),
-                Text.rich(
-                  TextSpan(
+                  Text('Log a slip · ${v.habit.name}', style: ts(12, c: n500)),
+                  const SizedBox(height: 4),
+                  Text('This interval: ${fmt(v.el)}', style: ts(22, w: w5)),
+                  const SizedBox(height: 4),
+                  Text(
+                    t == null
+                        ? 'First interval. This becomes the bar.'
+                        : v.beat
+                        ? 'Longer than your ${v.barName} (${fmt(t)}). This one passes.'
+                        : 'Not longer than your ${v.barName} (${fmt(t)}). Logging now is a fail.',
+                    style: ts(13, c: v.passing ? a300 : fail),
+                  ),
+                  const SizedBox(height: 18),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(text: 'Trigger '),
+                        TextSpan(
+                          text: '· optional',
+                          style: ts(12, c: n600),
+                        ),
+                      ],
+                    ),
+                    style: ts(12, c: n400),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
-                      const TextSpan(text: 'Trigger '),
-                      TextSpan(
-                        text: '· optional',
-                        style: ts(12, c: n600),
+                      for (final t in _triggers)
+                        Pill(
+                          t,
+                          h: 34,
+                          px: 13,
+                          fs: 12.5,
+                          on: picked.contains(t),
+                          onTap: () => set(() => picked.contains(t) ? picked.remove(t) : picked.add(t)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _Input(note, 'Add a note', h: 42, fs: 13, fill: bg),
+                  const SizedBox(height: 18),
+                  Row(
+                    spacing: 8,
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(c, false),
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size.fromHeight(46),
+                            foregroundColor: accent,
+                            textStyle: ts(14, w: w5),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Primary('Log slip now', h: 46, fs: 14, onTap: () => Navigator.pop(c, true)),
                       ),
                     ],
                   ),
-                  style: ts(12, c: n400),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final t in _triggers)
-                      Pill(
-                        t,
-                        h: 34,
-                        px: 13,
-                        fs: 12.5,
-                        on: picked.contains(t),
-                        onTap: () => set(() => picked.contains(t) ? picked.remove(t) : picked.add(t)),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _Input(note, 'Add a note', h: 42, fs: 13, fill: bg),
-                const SizedBox(height: 18),
-                Row(
-                  spacing: 8,
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(c, false),
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size.fromHeight(46),
-                          foregroundColor: accent,
-                          textStyle: ts(14, w: w5),
-                        ),
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Primary('Log slip now', h: 46, fs: 14, onTap: () => Navigator.pop(c, true)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     ),
   );

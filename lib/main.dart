@@ -78,7 +78,7 @@ class Shell extends StatefulWidget {
 }
 
 class _ShellState extends State<Shell> {
-  var tab = 0, splash = true;
+  var splash = true;
 
   @override
   void initState() {
@@ -102,60 +102,72 @@ class _ShellState extends State<Shell> {
   }
 
   @override
+  Widget build(BuildContext context) =>
+      AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: splash ? const Splash() : const Tabs());
+}
+
+class Tabs extends StatefulWidget {
+  const Tabs({super.key});
+  @override
+  State<Tabs> createState() => _TabsState();
+}
+
+class _TabsState extends State<Tabs> {
+  var tab = 0;
+
+  @override
   Widget build(BuildContext context) {
     const nav = [
       (Ph.listChecks, PhFill.listChecks, 'Habits'),
       (Ph.chartBar, PhFill.chartBar, 'Stats'),
       (Ph.gearSix, PhFill.gearSix, 'Settings'),
     ];
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      child: splash
-          ? const Splash()
-          : Scaffold(
-              body: SafeArea(
-                bottom: false,
-                child: ListenableBuilder(
-                  listenable: store,
-                  builder: (_, _) => [const Home(), const Stats(), const Settings()][tab],
-                ),
-              ),
-              bottomNavigationBar: Container(
-                decoration: const BoxDecoration(
-                  color: bg,
-                  border: Border(top: BorderSide(color: n900)),
-                ),
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-                child: SafeArea(
-                  top: false,
-                  child: SizedBox(
-                    height: 62,
-                    child: Row(
-                      children: [
-                        for (final (i, (off, on, label)) in nav.indexed)
-                          Expanded(
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () => setState(() => tab = i),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(tab == i ? on : off, size: 22, color: tab == i ? a300 : n500),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    label,
-                                    style: ts(11, w: w5, c: tab == i ? a300 : n500),
-                                  ),
-                                ],
-                              ),
-                            ),
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: ListenableBuilder(
+          listenable: store,
+          // Not const: a const tab is the same instance every time, so Flutter would skip rebuilding it
+          // and store changes (ticking clocks, toggles, deletes) wouldn't show until the tab is reopened.
+          // ignore: prefer_const_constructors
+          builder: (_, _) => [Home(), Stats(), Settings()][tab],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: bg,
+          border: Border(top: BorderSide(color: n900)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 62,
+            child: Row(
+              children: [
+                for (final (i, (off, on, label)) in nav.indexed)
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => setState(() => tab = i),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(tab == i ? on : off, size: 22, color: tab == i ? a300 : n500),
+                          const SizedBox(height: 3),
+                          Text(
+                            label,
+                            style: ts(11, w: w5, c: tab == i ? a300 : n500),
                           ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
+              ],
             ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -696,31 +708,35 @@ class Settings extends StatelessWidget {
         child: Column(
           children: [
             for (final (key, label, sub) in toggles)
-              InkWell(
-                onTap: () => store.setPref(key, !store.prefs[key]!),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(label, style: ts(13.5, w: w5)),
-                                const SizedBox(height: 1),
-                                Text(sub, style: ts(11.5, c: n500)),
-                              ],
+              Semantics(
+                key: ValueKey('pref-$key'),
+                toggled: store.prefs[key],
+                child: InkWell(
+                  onTap: () => store.setPref(key, !store.prefs[key]!),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(label, style: ts(13.5, w: w5)),
+                                  const SizedBox(height: 1),
+                                  Text(sub, style: ts(11.5, c: n500)),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          _Toggle(store.prefs[key]!),
-                        ],
+                            const SizedBox(width: 12),
+                            _Toggle(store.prefs[key]!),
+                          ],
+                        ),
                       ),
-                    ),
-                    const FadeRule(),
-                  ],
+                      const FadeRule(),
+                    ],
+                  ),
                 ),
               ),
           ],

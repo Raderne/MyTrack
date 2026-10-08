@@ -3,6 +3,7 @@
     android:minWidth="110dp" android:minHeight="110dp"
     android:targetCellWidth="2" android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
-    android:initialLayout="@layout/widget_streak" android:previewLayout="@layout/widget_streak"
+    android:initialLayout="@layout/widget_streak"
+    android:previewImage="@drawable/widget_preview_streak"
     android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
     android:description="@string/widget_streak" android:configure="com.mytrack.mytrack.WidgetConfig" android:widgetFeatures="reconfigurable|configuration_optional"/>

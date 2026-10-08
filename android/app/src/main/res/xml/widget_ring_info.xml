@@ -3,6 +3,7 @@
     android:minWidth="110dp" android:minHeight="110dp"
     android:targetCellWidth="2" android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
-    android:initialLayout="@layout/widget_ring" android:previewLayout="@layout/widget_ring"
+    android:initialLayout="@layout/widget_ring"
+    android:previewImage="@drawable/widget_preview_ring"
     android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
     android:description="@string/widget_ring" android:configure="com.mytrack.mytrack.WidgetConfig" android:widgetFeatures="reconfigurable|configuration_optional"/>
