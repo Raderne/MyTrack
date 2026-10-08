@@ -64,15 +64,17 @@ class Detail extends StatelessWidget {
                 context,
                 Ph.caretLeft,
                 v.habit.name,
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      const Icon(PhFill.flame, size: 13, color: accent),
-                      const SizedBox(width: 4),
-                      Text('${v.streak} in a row', style: ts(13, c: n300)),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    const Icon(PhFill.flame, size: 13, color: accent),
+                    const SizedBox(width: 4),
+                    Text('${v.streak} in a row', style: ts(13, c: n300)),
+                    IconButton(
+                      tooltip: 'Delete habit',
+                      onPressed: () => deleteHabit(context, v.habit),
+                      icon: const Icon(Ph.trash, size: 18, color: n500),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -94,7 +96,9 @@ class Detail extends StatelessWidget {
                       spacing: 8,
                       children: [
                         tile('To beat', target == null ? '—' : fmt(target)),
-                        tile('Best', v.best == null ? '—' : fmt(v.best!)),
+                        v.best
+                            ? tile('Last', v.ints.isEmpty ? '—' : fmt(v.ints.last))
+                            : tile('Best', v.bestInterval == null ? '—' : fmt(v.bestInterval!)),
                         tile('Slips', '${v.habit.slips.length}'),
                       ],
                     ),
@@ -142,12 +146,34 @@ class Detail extends StatelessWidget {
   );
 }
 
+Future<void> deleteHabit(BuildContext context, Habit h) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      backgroundColor: surface,
+      title: Text('Delete ${h.name}?'),
+      content: const Text('The habit and all its intervals are deleted. This cannot be undone.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(c, true),
+          style: TextButton.styleFrom(foregroundColor: fail),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  Navigator.pop(context);
+  await store.deleteHabit(h.id);
+}
+
 class _Bars extends StatelessWidget {
   const _Bars(this.v);
   final HabitView v;
   @override
   Widget build(BuildContext context) {
-    final ints = v.ints, start = max(0, ints.length - 6), shown = ints.sublist(start);
+    final ints = v.ints, bars = v.bars, start = max(0, ints.length - 6), shown = ints.sublist(start);
     final top = [v.el, ...shown, 1].reduce(max);
     double h(int ms) => max(0.06, ms / top);
     return LayoutBuilder(
@@ -160,7 +186,7 @@ class _Bars extends StatelessWidget {
               child: Container(
                 height: c.maxHeight * h(ints[i]),
                 decoration: BoxDecoration(
-                  color: i == 0 || ints[i] > ints[i - 1] ? a600 : fail.withValues(alpha: .45),
+                  color: bars[i] == null || ints[i] > bars[i]! ? a600 : fail.withValues(alpha: .45),
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
@@ -203,7 +229,7 @@ class _HistoryRow extends StatelessWidget {
   final int i;
   @override
   Widget build(BuildContext context) {
-    final len = v.ints[i], prev = i > 0 ? v.ints[i - 1] : null, up = prev == null || len > prev;
+    final len = v.ints[i], prev = v.bars[i], up = prev == null || len > prev; // prev: the bar it had to beat
     final color = prev == null ? n500 : (up ? a300 : fail);
     final icon = prev == null ? Ph.flag : (up ? Ph.trendUp : Ph.trendDown);
     return Column(
@@ -279,8 +305,8 @@ Future<void> logSlip(BuildContext context, int id) async {
                   t == null
                       ? 'First interval. This becomes the bar.'
                       : v.beat
-                      ? 'Longer than last (${fmt(t)}). This one passes.'
-                      : 'Shorter than last (${fmt(t)}). Logging now is a fail.',
+                      ? 'Longer than your ${v.barName} (${fmt(t)}). This one passes.'
+                      : 'Not longer than your ${v.barName} (${fmt(t)}). Logging now is a fail.',
                   style: ts(13, c: v.passing ? a300 : fail),
                 ),
                 const SizedBox(height: 18),
@@ -363,9 +389,9 @@ class Result extends StatelessWidget {
     final body = t == null
         ? 'Bar set at ${fmt(v.el)}. Next interval must beat it.'
         : ok
-        ? 'You beat your last interval by ${fmt(v.el - t)}. ${fmt(v.el)} is the new bar. Streak: ${v.streak}.'
-        : 'You lasted ${fmt(v.el)}. That is ${fmt(t - v.el)} shorter than last time. '
-              'Your streak of ${v.streak} is gone. Next interval must beat ${fmt(v.el)}.';
+        ? 'You beat your ${v.barName} by ${fmt(v.el - t)}. ${fmt(v.el)} is the new bar. Streak: ${v.streak}.'
+        : 'You lasted ${fmt(v.el)}. That is ${fmt(t - v.el)} short of your ${v.barName}. '
+              'Your streak of ${v.streak} is gone. Next interval must beat ${fmt(v.best ? t : v.el)}.';
     Widget tile(String label, String value, Color c) => Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -420,7 +446,10 @@ class Result extends StatelessWidget {
               const SizedBox(height: 28),
               Row(
                 spacing: 8,
-                children: [tile('This interval', fmt(v.el), color), tile('Previous', t == null ? '—' : fmt(t), text)],
+                children: [
+                  tile('This interval', fmt(v.el), color),
+                  tile(v.best ? 'Best' : 'Previous', t == null ? '—' : fmt(t), text),
+                ],
               ),
               const Spacer(),
               Primary(ok ? 'Start next interval' : 'Accept and restart', onTap: () => Navigator.pop(context)),
@@ -511,7 +540,8 @@ class _AddHabitState extends State<AddHabit> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(8)),
                     child: Text(
-                      'Each slip ends an interval. The next one must run longer than the one before. '
+                      'Each slip ends an interval. The next one must run longer than '
+                      '${store.prefs['beatBest']! ? 'your best so far' : 'the one before'}. '
                       'Shorter or equal is a fail — no exceptions.',
                       style: ts(12, c: n400, h: 1.5),
                     ),

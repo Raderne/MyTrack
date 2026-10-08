@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to dry-run, without the v prefix'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_BRANCH: develop
+  APP_NAME: mytrack
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and validate version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid semantic version: $VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Require release commit on the release branch
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git fetch origin "$RELEASE_BRANCH"
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$RELEASE_BRANCH"; then
+            echo "::error::Tag must point to a commit on $RELEASE_BRANCH."
+            exit 1
+          fi
+
+      - name: Check manifest version
+        shell: bash
+        run: |
+          MANIFEST_VERSION=$(
+            grep -E '^version:' pubspec.yaml |
+            sed -E 's/^version:[[:space:]]*//' |
+            cut -d'+' -f1
+          )
+
+          EXPECTED="${{ steps.version.outputs.version }}"
+          if [ "$MANIFEST_VERSION" != "$EXPECTED" ]; then
+            echo "::error::Manifest is $MANIFEST_VERSION but release is $EXPECTED."
+            exit 1
+          fi
+
+      - name: Extract release notes
+        run: |
+          node scripts/changelog-section.mjs \
+            "${{ steps.version.outputs.version }}" \
+            > "$RUNNER_TEMP/release-notes.md"
+          cat "$RUNNER_TEMP/release-notes.md"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Write Android signing configuration
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=()
+          test -n "$KEYSTORE_BASE64" || missing+=("ANDROID_KEYSTORE_BASE64")
+          test -n "$STORE_PASSWORD" || missing+=("ANDROID_KEYSTORE_PASSWORD")
+          test -n "$KEY_ALIAS" || missing+=("ANDROID_KEY_ALIAS")
+          test -n "$KEY_PASSWORD" || missing+=("ANDROID_KEY_PASSWORD")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing signing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          cat > android/key.properties <<EOF
+          storeFile=release.keystore
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build
+        run: |
+          flutter build apk --release
+          mv build/app/outputs/flutter-apk/app-release.apk \
+            "$RUNNER_TEMP/${APP_NAME}-${{ steps.version.outputs.version }}.apk"
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties android/app/release.keystore
+
+      - name: Reject a debug-signed APK
+        shell: bash
+        run: |
+          APK="$RUNNER_TEMP/${APP_NAME}-${{ steps.version.outputs.version }}.apk"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n1)
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error::apksigner was not found."
+            exit 1
+          fi
+          CERT=$("$APKSIGNER" verify --print-certs "$APK")
+          echo "$CERT"
+          if echo "$CERT" | grep -q "CN=Android Debug"; then
+            echo "::error::Release APK is signed with the Android debug certificate."
+            exit 1
+          fi
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ steps.version.outputs.version }}
+          path: ${{ runner.temp }}/${{ env.APP_NAME }}-${{ steps.version.outputs.version }}.apk
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: MyTrack ${{ steps.version.outputs.version }}
+          body_path: ${{ runner.temp }}/release-notes.md
+          files: ${{ runner.temp }}/${{ env.APP_NAME }}-${{ steps.version.outputs.version }}.apk
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}

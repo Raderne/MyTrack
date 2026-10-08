@@ -36,4 +36,17 @@ void main() {
       expect(t.takeException(), isNull, reason: '${w.runtimeType}');
     }
   });
+
+  testWidgets('splash fills the screen under loose constraints', (t) async {
+    t.view.physicalSize = const Size(360, 760);
+    t.view.devicePixelRatio = 1;
+    // AnimatedSwitcher (as in Shell) centers its child with loose constraints.
+    await t.pumpWidget(
+      const MaterialApp(
+        home: AnimatedSwitcher(duration: Duration.zero, child: Splash()),
+      ),
+    );
+    expect(t.getSize(find.byType(Splash)), const Size(360, 760));
+    await t.pump(const Duration(seconds: 2));
+  });
 }

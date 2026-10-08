@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import 'logic.dart';
+import 'system.dart';
 
 /// App state backed by SQLite. Ticks once a second so every clock on screen moves.
 class Store extends ChangeNotifier {
@@ -12,6 +13,7 @@ class Store extends ChangeNotifier {
   List<Habit> habits = [];
   int now = DateTime.now().millisecondsSinceEpoch;
   final prefs = <String, bool>{
+    'beatBest': true,
     'passAlert': true,
     'nearAlert': true,
     'summary': false,
@@ -56,9 +58,12 @@ class Store extends ChangeNotifier {
     }
     now = DateTime.now().millisecondsSinceEpoch;
     notifyListeners();
+    sync();
   }
 
-  List<HabitView> get views => [for (final h in habits) HabitView(h, now)];
+  void sync() => syncSystem(habits, prefs).catchError((Object e) => debugPrint('sync failed: $e'));
+
+  List<HabitView> get views => [for (final h in habits) HabitView(h, now, best: prefs['beatBest']!)];
   HabitView? view(int id) => views.where((v) => v.habit.id == id).firstOrNull;
 
   Future<int> addHabit(String name, String icon, int startedAt) async {
@@ -80,6 +85,12 @@ class Store extends ChangeNotifier {
     prefs[key] = value;
     notifyListeners();
     await _db.insert('prefs', {'key': key, 'value': value ? 1 : 0}, conflictAlgorithm: ConflictAlgorithm.replace);
+    sync();
+  }
+
+  Future<void> deleteHabit(int id) async {
+    await _db.delete('habits', where: 'id = ?', whereArgs: [id]); // slips go with it (ON DELETE CASCADE)
+    await _load();
   }
 
   /// Wipes every interval; each habit's clock restarts now.

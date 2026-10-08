@@ -3,6 +3,8 @@ import 'package:flutter/widgets.dart';
 // Phosphor icons (MIT, assets/fonts/PHOSPHOR_LICENSE). Vendored because phosphor_flutter 2.1.0
 // extends IconData, which is final in current Flutter.
 class Ph {
+  static const arrowsClockwise = IconData(0xe094, fontFamily: 'Phosphor');
+  static const trash = IconData(0xe4a6, fontFamily: 'Phosphor');
   static const caretLeft = IconData(0xe138, fontFamily: 'Phosphor');
   static const chartBar = IconData(0xe150, fontFamily: 'Phosphor');
   static const cigarette = IconData(0xed90, fontFamily: 'Phosphor');

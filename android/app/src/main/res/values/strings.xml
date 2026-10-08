@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_ring">Interval ring for one habit</string>
+    <string name="widget_streak">Streak for one habit</string>
+    <string name="widget_quick">One habit with quick log</string>
+    <string name="widget_list">All habits, tap ✋ to log</string>
+</resources>

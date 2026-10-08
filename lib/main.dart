@@ -9,6 +9,8 @@ import 'ph.dart';
 import 'logic.dart';
 import 'screens.dart';
 import 'store.dart';
+import 'system.dart';
+import 'update.dart';
 
 // Nocturne tokens (bad-habits-tracking-app/project/_ds/.../styles.css)
 const bg = Color(0xFF161826), surface = Color(0xFF232532), text = Color(0xFFE9E9ED);
@@ -62,6 +64,8 @@ void main() {
         fontFamily: GoogleFonts.inter().fontFamily,
         splashFactory: InkSparkle.splashFactory,
       ),
+      navigatorKey: nav,
+      scaffoldMessengerKey: messenger,
       home: const Shell(),
     ),
   );
@@ -80,8 +84,21 @@ class _ShellState extends State<Shell> {
   void initState() {
     super.initState();
     // Splash stays up for its full 1.8s and until the DB is loaded.
-    Future.wait([store.init(), Future.delayed(const Duration(milliseconds: 1800))])
-        .then((_) => setState(() => splash = false));
+    Future.wait([store.init(), Future.delayed(const Duration(milliseconds: 1800))]).then((_) {
+      setState(() => splash = false);
+      initSystem(openUri).then((_) => store.sync());
+      checkForUpdate().then((r) {
+        if (r != null) {
+          messenger.currentState?.showSnackBar(
+            SnackBar(
+              content: Text('MyTrack ${r.version} is available'),
+              action: SnackBarAction(label: 'Update', onPressed: () => showUpdate(nav.currentState!.overlay!.context)),
+              duration: const Duration(seconds: 8),
+            ),
+          );
+        }
+      });
+    });
   }
 
   @override
@@ -143,6 +160,18 @@ class _ShellState extends State<Shell> {
   }
 }
 
+final nav = GlobalKey<NavigatorState>();
+final messenger = GlobalKey<ScaffoldMessengerState>();
+
+/// Deep links from notifications and widgets: mytrack://open?id=N, mytrack://log?id=N
+void openUri(Uri u) {
+  final id = int.tryParse(u.queryParameters['id'] ?? ''), ctx = nav.currentState?.overlay?.context;
+  if (id == null || ctx == null || store.view(id) == null) return;
+  nav.currentState!.popUntil((r) => r.isFirst);
+  openDetail(ctx, id);
+  if (u.host == 'log') logSlip(ctx, id);
+}
+
 // ——— shared pieces ———
 
 /// The launcher mark: three bars, each taller than the last. [s] scales from the 112px splash size.
@@ -187,49 +216,52 @@ class AppMark extends StatelessWidget {
 class Splash extends StatelessWidget {
   const Splash({super.key});
   @override
-  Widget build(BuildContext context) => Material(
-    color: bg,
-    child: Container(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0, -0.1),
-          radius: 0.9,
-          colors: [section, Color(0x00262A60)],
-          stops: [0, 0.7],
-        ),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const AppMark(),
-              const SizedBox(height: 22),
-              Text(
-                'MyTrack',
-                style: ts(30, w: w5, ls: -0.025, c: text),
-              ),
-              const SizedBox(height: 4),
-              Text('Make every gap longer.', style: ts(13, c: n400)),
-            ],
+  Widget build(BuildContext context) => SizedBox.expand(
+    // AnimatedSwitcher would otherwise shrink it to its content
+    child: Material(
+      color: bg,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0, -0.1),
+            radius: 0.9,
+            colors: [section, Color(0x00262A60)],
+            stops: [0, 0.7],
           ),
-          Positioned(
-            bottom: 56,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(1),
-              child: SizedBox(
-                width: 120,
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: const Duration(milliseconds: 1800),
-                  builder: (_, v, _) =>
-                      LinearProgressIndicator(value: v, minHeight: 2, color: accent, backgroundColor: n800),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const AppMark(),
+                const SizedBox(height: 22),
+                Text(
+                  'MyTrack',
+                  style: ts(30, w: w5, ls: -0.025, c: text),
+                ),
+                const SizedBox(height: 4),
+                Text('Make every gap longer.', style: ts(13, c: n400)),
+              ],
+            ),
+            Positioned(
+              bottom: 56,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(1),
+                child: SizedBox(
+                  width: 120,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 1800),
+                    builder: (_, v, _) =>
+                        LinearProgressIndicator(value: v, minHeight: 2, color: accent, backgroundColor: n800),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     ),
   );
@@ -423,7 +455,8 @@ class Home extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'have already beaten their last interval. The rest fail if you slip now.',
+                'have already beaten their ${store.prefs['beatBest']! ? 'best' : 'last interval'}. '
+                'The rest fail if you slip now.',
                 style: ts(12, c: n300, h: 1.35),
               ),
             ),
@@ -543,7 +576,11 @@ class Stats extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 8,
                 children: [
-                  stat('$pass', text, 'intervals longer than the one before'),
+                  stat(
+                    '$pass',
+                    text,
+                    store.prefs['beatBest']! ? 'intervals that beat your best' : 'intervals longer than the one before',
+                  ),
                   stat('$fails', fail, 'fails'),
                   stat('$weekSlips', text, 'slips in the last 7 days'),
                 ],
@@ -608,7 +645,7 @@ class _StatCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Best ${v.best == null ? '—' : fmt(v.best!)}', style: ts(11.5, c: n500)),
+              Text('Best ${v.bestInterval == null ? '—' : fmt(v.bestInterval!)}', style: ts(11.5, c: n500)),
               Text('Avg $avg', style: ts(11.5, c: n500)),
             ],
           ),
@@ -623,7 +660,8 @@ class Settings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const toggles = [
-      ('passAlert', 'Notify when I beat my last interval', 'The moment the clock passes it'),
+      ('beatBest', 'Beat my best time', 'Off: only the interval right before counts'),
+      ('passAlert', 'Notify when I beat my bar', 'The moment the clock passes it'),
       ('nearAlert', 'Warn before the danger zone', "30 min before you'd beat it — hold on"),
       ('summary', 'Daily summary', '9:00 pass / fail report'),
       ('seconds', 'Show seconds on widgets', 'Under one hour only'),
@@ -642,9 +680,10 @@ class Settings extends StatelessWidget {
                 text: 'Rule:',
                 style: ts(12, w: w5),
               ),
-              const TextSpan(
+              TextSpan(
                 text:
-                    ' an interval passes only if it is longer than the previous interval. '
+                    ' an interval passes only if it is longer than '
+                    '${store.prefs['beatBest']! ? 'your best interval so far' : 'the previous interval'}. '
                     'Equal or shorter is a fail and resets the streak.',
               ),
             ],
@@ -687,7 +726,27 @@ class Settings extends StatelessWidget {
           ],
         ),
       ),
-      const SizedBox(height: 16),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
+        child: Text('About', style: ts(12, w: w5)),
+      ),
+      Card2(
+        pad: const EdgeInsets.symmetric(horizontal: 14),
+        child: ListenableBuilder(
+          listenable: Listenable.merge([appVersion, updateStatus]),
+          builder: (context, _) => Column(
+            children: [
+              _InfoRow('Version', appVersion.value.isEmpty ? '—' : appVersion.value),
+              const FadeRule(),
+              InkWell(
+                onTap: () => latest != null ? showUpdate(context) : checkForUpdate(),
+                child: _InfoRow('Check for updates', updateStatus.value, icon: Ph.arrowsClockwise),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 24),
       Primary(
         'Export history (CSV)',
         icon: Ph.export,
@@ -732,6 +791,55 @@ class Settings extends StatelessWidget {
     ]);
   }
 }
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow(this.label, this.sub, {this.icon});
+  final String label, sub;
+  final IconData? icon;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 13),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: ts(13.5, w: w5)),
+              const SizedBox(height: 1),
+              Text(sub, style: ts(11.5, c: latest != null && icon != null ? a300 : n500)),
+            ],
+          ),
+        ),
+        if (icon != null) Icon(icon, size: 18, color: n500),
+      ],
+    ),
+  );
+}
+
+Future<void> showUpdate(BuildContext context) => showDialog(
+  context: context,
+  builder: (c) => AlertDialog(
+    backgroundColor: surface,
+    title: Text('MyTrack ${latest!.version}'),
+    content: SingleChildScrollView(
+      child: Text(
+        latest!.notes.isEmpty ? 'A new version is available.' : latest!.notes,
+        style: ts(13, c: n300, h: 1.5),
+      ),
+    ),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(c), child: const Text('Later')),
+      TextButton(
+        onPressed: () {
+          Navigator.pop(c);
+          downloadUpdate();
+        },
+        child: const Text('Download'),
+      ),
+    ],
+  ),
+);
 
 class _Toggle extends StatelessWidget {
   const _Toggle(this.on);

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/w_surface">
+<LinearLayout android:id="@+id/body" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:paddingHorizontal="18dp" android:paddingTop="18dp" android:paddingBottom="12dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp">
+        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textSize="15sp" android:textColor="#E9E9ED" android:fontFamily="sans-serif-medium" android:text="Intervals"/>
+        <TextView android:id="@+id/beaten" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="#D2CEFD" android:text="2/4 beaten"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/rows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"/>
+</LinearLayout>
+<include android:id="@+id/empty" layout="@layout/widget_empty" android:visibility="gone"/>
+</FrameLayout>
