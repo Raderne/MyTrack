@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Three intervals, each longer than the last (design 2a) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#5D5294" android:pathData="M36.8,59.25 H39.7 A3.4,3.4 0 0 1 43.1,62.65 V69.35 A3.4,3.4 0 0 1 39.7,72.75 H36.8 A3.4,3.4 0 0 1 33.4,69.35 V62.65 A3.4,3.4 0 0 1 36.8,59.25 Z" />
+    <path android:fillColor="#968AE0" android:pathData="M52.5,48.75 H55.5 A3.4,3.4 0 0 1 58.9,52.15 V69.35 A3.4,3.4 0 0 1 55.5,72.75 H52.5 A3.4,3.4 0 0 1 49.1,69.35 V52.15 A3.4,3.4 0 0 1 52.5,48.75 Z" />
+    <path android:fillColor="#E7E5FE" android:pathData="M68.3,35.25 H71.2 A3.4,3.4 0 0 1 74.6,38.65 V69.35 A3.4,3.4 0 0 1 71.2,72.75 H68.3 A3.4,3.4 0 0 1 64.9,69.35 V38.65 A3.4,3.4 0 0 1 68.3,35.25 Z" />
+</vector>
