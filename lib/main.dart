@@ -833,29 +833,70 @@ class _InfoRow extends StatelessWidget {
   );
 }
 
-Future<void> showUpdate(BuildContext context) => showDialog(
-  context: context,
-  builder: (c) => AlertDialog(
-    backgroundColor: surface,
-    title: Text('MyTrack ${latest!.version}'),
-    content: SingleChildScrollView(
-      child: Text(
-        latest!.notes.isEmpty ? 'A new version is available.' : latest!.notes,
-        style: ts(13, c: n300, h: 1.5),
-      ),
+/// Release notes, then an in-app download with progress that ends in Android's installer.
+Future<void> showUpdate(BuildContext context) {
+  var downloading = false;
+  double? progress;
+  String? error;
+  return showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (c) => StatefulBuilder(
+      builder: (c, set) {
+        Future<void> start() async {
+          set(() => (downloading, progress, error) = (true, 0, null));
+          try {
+            await installUpdate((p) {
+              if (c.mounted) set(() => progress = p); // a last chunk can land after Cancel closed the dialog
+            });
+            if (c.mounted) Navigator.pop(c);
+          } catch (_) {
+            if (c.mounted && downloading) {
+              set(() => (downloading, error) = (false, 'Download failed. Check your connection and try again.'));
+            }
+          }
+        }
+
+        return AlertDialog(
+          backgroundColor: surface,
+          title: Text('MyTrack ${latest!.version}'),
+          content: downloading
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      progress == null ? 'Downloading…' : 'Downloading… ${(progress! * 100).round()}%',
+                      style: ts(13, c: n300),
+                    ),
+                    const SizedBox(height: 12),
+                    Bar(progress ?? 0, h: 6),
+                  ],
+                )
+              : SingleChildScrollView(
+                  child: Text(
+                    error ?? (latest!.notes.isEmpty ? 'A new version is available.' : latest!.notes),
+                    style: ts(13, c: error == null ? n300 : fail, h: 1.5),
+                  ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (downloading) {
+                  downloading = false;
+                  cancelUpdate();
+                }
+                Navigator.pop(c);
+              },
+              child: Text(downloading ? 'Cancel' : 'Later'),
+            ),
+            if (!downloading) TextButton(onPressed: start, child: Text(error == null ? 'Update' : 'Try again')),
+          ],
+        );
+      },
     ),
-    actions: [
-      TextButton(onPressed: () => Navigator.pop(c), child: const Text('Later')),
-      TextButton(
-        onPressed: () {
-          Navigator.pop(c);
-          downloadUpdate();
-        },
-        child: const Text('Download'),
-      ),
-    ],
-  ),
-);
+  );
+}
 
 class _Toggle extends StatelessWidget {
   const _Toggle(this.on);

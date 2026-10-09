@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-09
+
+### Changed
+
+- Updates download inside the app with a progress bar and open Android's installer directly, instead of going through the browser.
+- Releases ship one APK per CPU architecture (under 20 MB each instead of one 50 MB file); the app downloads the one that fits the phone.
+
 ## [1.0.1] - 2026-10-09
 
 ### Fixed

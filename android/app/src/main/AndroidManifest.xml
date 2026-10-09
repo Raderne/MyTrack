@@ -2,6 +2,8 @@
     <!-- google_fonts fetches Inter once, then caches it -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- In-app updates: hand the downloaded APK to the installer -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Exact timing for "interval beaten" alerts. USE_EXACT_ALARM is auto-granted (fine outside Google Play);
          SCHEDULE_EXACT_ALARM covers Android 12, where USE_EXACT_ALARM doesn't exist yet. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
@@ -32,6 +34,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- In-app updates: lets the installer read the APK downloaded to cache/updates -->
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.updates"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths" />
+        </provider>
         <!-- Home-screen widgets (Widgets.kt) -->
         <receiver android:name=".RingWidget" android:exported="true" android:label="MyTrack ring">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>

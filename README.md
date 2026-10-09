@@ -11,7 +11,8 @@ flutter test
 ## Releases (GitHub, not Google Play)
 
 The app checks `https://api.github.com/repos/Raderne/MyTrack/releases/latest` on launch and in
-Settings → About, and offers the release's `.apk` when its tag is newer than the installed version.
+Settings → About. When the tag is newer than the installed version it downloads the APK for the phone's CPU
+(`mytrack-X.Y.Z-<abi>.apk`: arm64-v8a, armeabi-v7a or x86_64) and opens Android's installer.
 Releases are built and published by [`.github/workflows/release.yml`](.github/workflows/release.yml)
 when a `v*.*.*` tag is pushed.
 
@@ -67,5 +68,5 @@ git push origin develop v1.0.1
 ```
 
 The workflow checks the tag matches `pubspec.yaml` and is on `develop`, runs analyze and tests, builds a
-release-signed APK (refusing a debug-signed one) and publishes `mytrack-X.Y.Z.apk` with the changelog notes.
+release-signed APK per CPU architecture (refusing debug-signed ones) and publishes them with the changelog notes.
 To try a build without publishing, run the workflow manually (Actions → Release → Run workflow).
