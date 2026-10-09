@@ -230,7 +230,8 @@ class ListWidget : MyTrackWidget() {
     }
 }
 
-/** Picks which habit a single-habit widget shows. Optional on Android 12+ (defaults to the first habit). */
+/** Picks which habit a single-habit widget shows; runs when the widget is added, and again from the
+ *  launcher's widget settings (reconfigurable). Backing out cancels adding the widget. */
 class WidgetConfig : Activity() {
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)

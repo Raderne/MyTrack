@@ -12,7 +12,7 @@
         </LinearLayout>
         <ImageView android:id="@+id/log" android:layout_width="52dp" android:layout_height="52dp" android:padding="16dp" android:background="@drawable/w_circle_accent" android:contentDescription="Log slip"/>
     </LinearLayout>
-    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+    <FrameLayout android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
     <ProgressBar android:id="@+id/bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="6dp"  android:max="1000" android:progress="600" android:progressDrawable="@drawable/w_progress"/>
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp">
         <TextView android:id="@+id/status" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textSize="11.5sp" android:textColor="#EF9497" android:maxLines="1" android:ellipsize="end" android:text="1h 05m left or it's a fail"/>

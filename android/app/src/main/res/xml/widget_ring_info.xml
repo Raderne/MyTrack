@@ -6,4 +6,4 @@
     android:initialLayout="@layout/widget_ring"
     android:previewImage="@drawable/widget_preview_ring"
     android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
-    android:description="@string/widget_ring" android:configure="com.mytrack.mytrack.WidgetConfig" android:widgetFeatures="reconfigurable|configuration_optional"/>
+    android:description="@string/widget_ring" android:configure="com.mytrack.mytrack.WidgetConfig" android:widgetFeatures="reconfigurable"/>

@@ -6,7 +6,7 @@
         <TextView android:id="@+id/streak" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="30sp" android:textColor="#E7E5FE" android:fontFamily="sans-serif-medium" android:text="4"/>
     </LinearLayout>
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="#E7E5FE" android:text="longer in a row"/>
-    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+    <FrameLayout android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
     <TextView android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="22sp" android:textColor="#F3F5FE" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:maxLines="1"  android:text="3h 12m"/>
 <Chronometer android:id="@+id/chrono" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="22sp" android:textColor="#F3F5FE" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:maxLines="1"  android:visibility="gone"/>
     <TextView android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="#E7E5FE" android:maxLines="1" android:ellipsize="end" android:text="Smoking"/>

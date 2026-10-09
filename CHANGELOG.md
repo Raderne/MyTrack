@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-09
+
+### Fixed
+
+- The streak and quick-log home-screen widgets can now be added instead of failing with "Couldn't add widget".
+- The ring, streak and quick-log widgets always ask which habit to show when you add them; change it later from the widget's settings.
+
 ## [1.0.0] - 2026-10-08
 
 First Android release of the bad-habit interval tracker.
