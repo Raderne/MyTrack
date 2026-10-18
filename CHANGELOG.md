@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-18
+
+### Fixed
+
+- Ring, streak and quick-log widgets added before you have any habits show "Add a habit in MyTrack" instead of sample numbers that never update.
+
 ## [1.0.2] - 2026-10-09
 
 ### Changed

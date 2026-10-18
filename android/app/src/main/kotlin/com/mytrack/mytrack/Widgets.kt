@@ -238,21 +238,22 @@ class WidgetConfig : Activity() {
         val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
         val done = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
         setResult(RESULT_CANCELED, done)
-        val habits = state(es.antonborri.home_widget.HomeWidgetPlugin.getData(this)).habits
-        if (habits.isEmpty()) {
-            setResult(RESULT_OK, done) // widget shows "add a habit" until there is one
+        // With a configure activity the system skips the widget's first onUpdate; without this it keeps
+        // the layout's sample text and never starts its minute tick.
+        fun ok() {
+            val provider: ComponentName? = AppWidgetManager.getInstance(this).getAppWidgetInfo(id)?.provider
+            if (provider != null) sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).setComponent(provider)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(id)))
+            setResult(RESULT_OK, done)
             finish()
-            return
         }
+        val habits = state(es.antonborri.home_widget.HomeWidgetPlugin.getData(this)).habits
+        if (habits.isEmpty()) return ok() // widget shows "add a habit" until there is one
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle("Show which habit?")
             .setItems(habits.map { it.name }.toTypedArray()) { _, i ->
                 choices(this).edit().putInt("w$id", habits[i].id).apply()
-                val provider: ComponentName? = AppWidgetManager.getInstance(this).getAppWidgetInfo(id)?.provider
-                if (provider != null) sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).setComponent(provider)
-                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(id)))
-                setResult(RESULT_OK, done)
-                finish()
+                ok()
             }
             .setOnCancelListener { finish() }
             .show()
