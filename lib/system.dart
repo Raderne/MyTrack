@@ -66,7 +66,6 @@ Map<String, Object?> widgetState(List<HabitView> views, Map<String, bool> prefs)
 /// Rebuilds every scheduled notification and pushes fresh state to the widgets.
 /// Called after any change, so nothing here has to be incremental.
 Future<void> syncSystem(List<Habit> habits, Map<String, bool> prefs) async {
-  if (!_ready) return; // initSystem's caller syncs once it's done
   final now = DateTime.now().millisecondsSinceEpoch;
   final best = prefs['beatBest']!;
   final views = [for (final h in habits) HabitView(h, now, best: best)];
@@ -76,6 +75,8 @@ Future<void> syncSystem(List<Habit> habits, Map<String, bool> prefs) async {
     await HomeWidget.updateWidget(qualifiedAndroidName: 'com.mytrack.mytrack.$w');
   }
 
+  // Widgets don't depend on notifications: if initSystem failed they still get data.
+  if (!_ready) return; // initSystem's caller syncs once it's done
   await _notes.cancelAll();
   final exact = await _android?.canScheduleExactNotifications() ?? false;
   Future<void> at(int id, int when, String title, String body, int habitId) => _notes.zonedSchedule(

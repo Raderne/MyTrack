@@ -35,6 +35,12 @@ class WidgetResourcesTest {
         }
     }
 
+    // Release shrinking deleted it, notification setup threw, and widgets never got data.
+    @Test fun notificationIconSurvivesReleaseResourceShrinking() {
+        val icon = Regex("AndroidInitializationSettings\\('(\\w+)'\\)").find(File("../../lib/system.dart").readText())!!.groupValues[1]
+        assertTrue(icon, "@drawable/$icon" in res.resolve("raw/keep.xml").readText())
+    }
+
     @Test fun singleHabitWidgetsAlwaysAskWhichHabit() {
         for (name in listOf("ring", "streak", "quick")) {
             val info = xml(res.resolve("xml/widget_${name}_info.xml"))

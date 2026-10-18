@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release builds shrink resources; lib/system.dart only names this icon as a string, so keep it. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ic_notification" />

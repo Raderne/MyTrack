@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-10-18
+
+### Fixed
+
+- Home-screen widgets showed "Add a habit in MyTrack" and an empty habit picker even with habits, and no notifications were sent: release builds were missing the notification icon, so setup failed before any widget data was saved.
+
 ## [1.0.3] - 2026-10-18
 
 ### Fixed
