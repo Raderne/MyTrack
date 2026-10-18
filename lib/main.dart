@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -279,6 +280,76 @@ class Splash extends StatelessWidget {
   );
 }
 
+/// Dr. Layla, the pixel mascot. `assets/sprites/layla.png` holds one 64×48 animation per row, in [Mood] order.
+/// The sheet comes from the Dr. Stop Sprite artifact; frame counts and fps here must match it.
+enum Mood { idle, stop, wag, thumbs, cheer, okay }
+
+const _frames = [8, 8, 6, 6, 6, 8], _fps = [6, 7, 8, 6, 8, 6];
+
+class Doctor extends StatefulWidget {
+  const Doctor(this.mood, {super.key, this.scale = 2});
+  final Mood mood;
+  final double scale;
+  @override
+  State<Doctor> createState() => _DoctorState();
+}
+
+class _DoctorState extends State<Doctor> with SingleTickerProviderStateMixin {
+  static final _sheet = rootBundle
+      .load('assets/sprites/layla.png')
+      .then((d) => decodeImageFromList(d.buffer.asUint8List()));
+  ui.Image? _img;
+  int _ms = 0, _onceAt = -1; // _onceAt: when a tap started the STOP sign, -1 when not playing
+  late final _ticker = createTicker((d) => setState(() => _ms = d.inMilliseconds));
+
+  @override
+  void initState() {
+    super.initState();
+    _sheet.then((i) {
+      if (!mounted) return;
+      setState(() => _img = i);
+      if (store.ticking) _ticker.start();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Size(64 * widget.scale, 48 * widget.scale);
+    if (_img == null) return SizedBox.fromSize(size: s);
+    var m = widget.mood.index, t = _ms;
+    if (_onceAt >= 0 && _ms - _onceAt < _frames[1] * 1000 ~/ _fps[1]) {
+      m = Mood.stop.index;
+      t = _ms - _onceAt;
+    }
+    final col = (t * _fps[m] ~/ 1000) % _frames[m];
+    return GestureDetector(
+      onTap: () => setState(() => _onceAt = _ms),
+      child: CustomPaint(size: s, painter: _Frame(_img!, m, col)),
+    );
+  }
+}
+
+class _Frame extends CustomPainter {
+  _Frame(this.img, this.row, this.col);
+  final ui.Image img;
+  final int row, col;
+  @override
+  void paint(Canvas c, Size s) => c.drawImageRect(
+    img,
+    Rect.fromLTWH(col * 64.0, row * 48.0, 64, 48),
+    Offset.zero & s,
+    Paint()..filterQuality = FilterQuality.none,
+  );
+  @override
+  bool shouldRepaint(_Frame o) => o.row != row || o.col != col || o.img != img;
+}
+
 /// Surface card with the 1px edge Nocturne uses instead of shadows.
 class Card2 extends StatelessWidget {
   const Card2({
@@ -460,16 +531,27 @@ class Home extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(
-              '${views.where((v) => v.beat).length}/${views.length}',
-              style: ts(26, w: w5, c: a300).copyWith(fontFeatures: tabular),
-            ),
+            Doctor(switch (views.where((v) => v.beat).length) {
+              _ when views.isEmpty => Mood.idle,
+              final n when n == views.length => Mood.cheer,
+              0 => Mood.wag,
+              _ => Mood.thumbs,
+            }),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                'have already beaten their ${store.prefs['beatBest']! ? 'best' : 'last interval'}. '
-                'The rest fail if you slip now.',
-                style: ts(12, c: n300, h: 1.35),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${views.where((v) => v.beat).length}/${views.length}',
+                    style: ts(26, w: w5, c: a300).copyWith(fontFeatures: tabular),
+                  ),
+                  Text(
+                    'have already beaten their ${store.prefs['beatBest']! ? 'best' : 'last interval'}. '
+                    'The rest fail if you slip now.',
+                    style: ts(12, c: n300, h: 1.35),
+                  ),
+                ],
               ),
             ),
           ],

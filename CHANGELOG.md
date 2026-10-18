@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-10-18
+
+### Added
+
+- Dr. Layla, a pixel-art doctor, on the Habits screen. She cheers when every habit has beaten its bar, gives a thumbs up when some have, and wags her finger when none have yet. Tap her to see the STOP sign.
+
 ## [1.0.4] - 2026-10-18
 
 ### Fixed

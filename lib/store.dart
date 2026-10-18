@@ -21,6 +21,9 @@ class Store extends ChangeNotifier {
     'haptics': true,
   };
 
+  /// True once the live clock runs; tests never set it, so nothing animates under `pumpAndSettle`.
+  bool ticking = false;
+
   /// [path] and [tick] exist for tests: a throwaway database, and no 1-second timer.
   Future<void> init({String? path, bool tick = true}) async {
     _db = await openDatabase(
@@ -40,6 +43,7 @@ class Store extends ChangeNotifier {
     );
     await _load();
     if (!tick) return;
+    ticking = true;
     Timer.periodic(const Duration(seconds: 1), (_) {
       now = DateTime.now().millisecondsSinceEpoch;
       notifyListeners();
